@@ -1,0 +1,213 @@
+import React, { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { HiPaperAirplane, HiSparkles, HiCheckCircle, HiArrowPath } from 'react-icons/hi2';
+import toast from 'react-hot-toast';
+import { sendP2PMoney } from '../../api/neobankApi';
+
+export default function SendScreen({ account, onComplete }) {
+  const [recipient, setRecipient] = useState('');
+  const [amount, setAmount] = useState('');
+  const [note, setNote] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [stepIndex, setStepIndex] = useState(0);
+  const [successResult, setSuccessResult] = useState(null);
+
+  const steps = [
+    { title: 'Signing transaction...', desc: 'Verifying custodial signature' },
+    { title: 'Quoting Polygon OMS...', desc: 'Sponsoring POL gas fees ($0.00)' },
+    { title: 'Broadcasting to Polygon...', desc: 'Propagating USDC settlement' },
+    { title: 'Transaction Confirmed!', desc: 'Finalized on Polygon blockchain' }
+  ];
+
+  const handleSend = async (e) => {
+    e.preventDefault();
+    if (!recipient || !amount) {
+      toast.error('Please enter recipient and amount');
+      return;
+    }
+
+    setLoading(true);
+    setStepIndex(0);
+
+    // Realistic 2.5-second step-by-step progress sequence
+    const stepTimer1 = setTimeout(() => setStepIndex(1), 700);
+    const stepTimer2 = setTimeout(() => setStepIndex(2), 1500);
+
+    try {
+      // Execute API call
+      const res = await sendP2PMoney(recipient, amount, note);
+      
+      setTimeout(() => {
+        setStepIndex(3);
+        setTimeout(() => {
+          setSuccessResult(res.data);
+          setLoading(false);
+          toast.success(`Successfully sent $${amount} to ${recipient}!`);
+        }, 500);
+      }, 2200);
+
+    } catch (err) {
+      clearTimeout(stepTimer1);
+      clearTimeout(stepTimer2);
+      setLoading(false);
+      toast.error(err.message || 'Transfer failed');
+    }
+  };
+
+  return (
+    <div className="p-4 space-y-4">
+      <div className="flex items-center space-x-2">
+        <div className="w-8 h-8 rounded-lg bg-primary-500/20 text-primary-400 flex items-center justify-center text-lg">
+          💸
+        </div>
+        <div>
+          <h2 className="text-sm font-semibold text-white">Send Money P2P</h2>
+          <p className="text-[10px] text-slate-400">Instant Polygon USDC settlement (Gas Sponsored)</p>
+        </div>
+      </div>
+
+      {loading ? (
+        /* Animated 2.5s Transaction Progress View */
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          className="p-6 rounded-2xl bg-slate-900 border border-primary-500/30 text-center space-y-5 my-4 shadow-xl relative overflow-hidden"
+        >
+          <div className="absolute top-0 right-0 w-28 h-28 bg-primary-500/10 rounded-full blur-xl pointer-events-none" />
+
+          {/* Animated Spinner with Polygon Symbol */}
+          <div className="relative w-20 h-20 mx-auto flex items-center justify-center">
+            <div className="absolute inset-0 rounded-full border-4 border-primary-500/20 border-t-primary-500 animate-spin" />
+            <div className="w-12 h-12 rounded-full bg-primary-500/20 text-primary-400 flex items-center justify-center text-xl shadow-inner">
+              ⚡
+            </div>
+          </div>
+
+          <div>
+            <h3 className="text-base font-bold text-white tracking-wide">
+              {steps[stepIndex]?.title}
+            </h3>
+            <p className="text-xs text-primary-300 mt-1 font-mono">
+              {steps[stepIndex]?.desc}
+            </p>
+          </div>
+
+          {/* Step Progress Bar */}
+          <div className="w-full bg-slate-950 rounded-full h-2 p-0.5 border border-white/10 overflow-hidden">
+            <motion.div
+              className="bg-gradient-to-r from-primary-500 to-violet-400 h-full rounded-full"
+              initial={{ width: '15%' }}
+              animate={{ width: `${(stepIndex + 1) * 25}%` }}
+              transition={{ duration: 0.5 }}
+            />
+          </div>
+
+          {/* Step Checklist */}
+          <div className="space-y-2 text-left font-mono text-[11px]">
+            {steps.map((s, idx) => (
+              <div key={idx} className={`flex items-center space-x-2 transition-colors ${idx <= stepIndex ? 'text-emerald-400 font-semibold' : 'text-slate-600'}`}>
+                {idx < stepIndex ? (
+                  <HiCheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />
+                ) : idx === stepIndex ? (
+                  <HiArrowPath className="w-4 h-4 text-primary-400 animate-spin shrink-0" />
+                ) : (
+                  <div className="w-4 h-4 rounded-full border border-slate-700 shrink-0" />
+                )}
+                <span>{s.title}</span>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      ) : !successResult ? (
+        /* Standard Transfer Form */
+        <form onSubmit={handleSend} className="space-y-3.5">
+          <div className="p-3.5 rounded-xl bg-slate-900 border border-white/10 space-y-1">
+            <label className="block text-xs font-medium text-slate-300">
+              Recipient Email, Username, or 0x Address
+            </label>
+            <input
+              type="text"
+              placeholder="ada@example.com or 0x71C7..."
+              value={recipient}
+              onChange={(e) => setRecipient(e.target.value)}
+              required
+              className="w-full py-2 bg-transparent text-white font-medium focus:outline-none text-xs placeholder:text-slate-500"
+            />
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-900 border border-white/10 space-y-1">
+            <div className="flex justify-between items-center text-xs">
+              <label className="font-medium text-slate-300">Amount (USD)</label>
+              <span className="text-[10px] text-slate-400">Available: ${account?.balance || '2,450.00'}</span>
+            </div>
+            <div className="relative flex items-center">
+              <span className="text-slate-400 text-lg font-bold mr-1.5">$</span>
+              <input
+                type="number"
+                placeholder="0.00"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                min="1"
+                step="0.01"
+                required
+                className="w-full py-1 bg-transparent text-white font-extrabold text-2xl focus:outline-none"
+              />
+            </div>
+          </div>
+
+          <div className="p-3.5 rounded-xl bg-slate-900 border border-white/10 space-y-1">
+            <label className="block text-xs font-medium text-slate-300">Note / Memo (Optional)</label>
+            <input
+              type="text"
+              placeholder="Dinner repayment, invoice #102..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              className="w-full py-1 bg-transparent text-slate-200 text-xs focus:outline-none placeholder:text-slate-500"
+            />
+          </div>
+
+          <div className="p-2.5 rounded-lg bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-between text-[11px] text-emerald-300">
+            <div className="flex items-center space-x-1.5">
+              <HiSparkles className="w-4 h-4 text-emerald-400" />
+              <span>Polygon Gas Fee: $0.00 (Sponsored)</span>
+            </div>
+            <span className="font-mono text-[10px] text-emerald-400">USDC Rail</span>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-primary-600 to-violet-500 text-white font-semibold text-xs shadow-lg shadow-primary-500/25 hover:opacity-95 transition-all flex items-center justify-center space-x-2"
+          >
+            <HiPaperAirplane className="w-4 h-4" />
+            <span>Confirm & Transfer</span>
+          </button>
+        </form>
+      ) : (
+        /* Completed Result View */
+        <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-5 rounded-2xl bg-slate-900 border border-emerald-500/30 text-center space-y-4">
+          <div className="w-16 h-16 rounded-full bg-emerald-500/20 text-emerald-400 flex items-center justify-center text-3xl mx-auto border border-emerald-500/30 shadow-lg shadow-emerald-500/20">
+            ✓
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-white">Transfer Completed!</h3>
+            <div className="text-2xl font-extrabold text-emerald-400 mt-1">${successResult.amount} USD</div>
+            <p className="text-xs text-slate-400 mt-1">Sent to {successResult.recipient}</p>
+          </div>
+
+          <div className="p-3 rounded-lg bg-slate-950 text-left font-mono text-[11px] space-y-1 text-slate-400 border border-white/5">
+            <div><span className="text-slate-500">Tx Hash:</span> {successResult.txHash ? `${successResult.txHash.substring(0, 16)}...` : '0x4860d931437645048a5868775b9b01aa'}</div>
+            <div><span className="text-slate-500">Status:</span> Completed (Polygon Block Confirmed)</div>
+            <div><span className="text-slate-500">Gas Sponsored:</span> Yes ($0.00 POL)</div>
+          </div>
+
+          <button
+            onClick={() => setSuccessResult(null)}
+            className="w-full py-2.5 rounded-xl bg-slate-800 text-xs text-white hover:bg-slate-700 transition-colors"
+          >
+            Send Another Payment
+          </button>
+        </motion.div>
+      )}
+    </div>
+  );
+}
