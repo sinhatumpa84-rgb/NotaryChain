@@ -1,88 +1,39 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-venv/
-ENV/
-env/
-
-# Node
+# Dependencies
 node_modules/
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
-.pnpm-debug.log*
-.next/
-out/
-.DS_Store
-*.tsbuildinfo
 
 # Environment
 .env
 .env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.production
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# Build output
+dist/
+build/
 
-# Testing
-.coverage
-.pytest_cache/
-coverage/
-*.cover
-
-# Secrets & Keys
-*.pem
-*.key
-*.crt
-*.p12
-*.pfx
-secrets/
-keys/
+# Uploads
+server/uploads/*
+!server/uploads/.gitkeep
 
 # Logs
 logs/
 *.log
 
-# Database
-*.db
-*.sqlite
-*.sqlite3
-
-# Docker
-.dockerignore
-
-# OS
-Thumbs.db
+# OS files
 .DS_Store
+Thumbs.db
 
-# Uploads (local development only)
-uploads/
-temp/
+# IDE
+.vscode/
+.idea/
 
-# Redis
-dump.rdb
+# Testing
+coverage/
+
+# Python
+__pycache__/
+*.pyc
+.pytest_cache/
+face_service/__pycache__/
+
+# Agent metadata
+.agents/

@@ -1,0 +1,10 @@
+{
+  "version": 1,
+  "skills": {
+    "open-money-stack": {
+      "source": "docs.polygon.technology",
+      "sourceType": "well-known",
+      "computedHash": "41bec88a0d299b2d5f485657a0d879b30fdbee6505be1fc3ddfa31cb88b4d48d"
+    }
+  }
+}
