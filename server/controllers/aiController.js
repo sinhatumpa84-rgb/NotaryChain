@@ -146,7 +146,7 @@ exports.groqChat = async (req, res, next) => {
   try {
     const { documentId, message, history = [], documentContext } = req.body;
 
-    let ocrText = DEMO_OCR_TEXT;
+    let ocrText = null;
     if (mongoose.connection.readyState === 1 && documentId) {
       try {
         const report = await AR.findOne({ documentId, reportType: 'ocr', status: 'completed' });
@@ -154,28 +154,32 @@ exports.groqChat = async (req, res, next) => {
       } catch (e) {}
     }
 
-    // Use passed context or fall back to fetched/demo text
-    const contextText = documentContext || ocrText;
+    // Only use context if specifically querying a document
+    const contextText = documentId ? (documentContext || ocrText || DEMO_OCR_TEXT) : null;
 
     let systemPrompt;
-    if (documentId || contextText) {
-      systemPrompt = `You are NotaryChain's AI Document Assistant. A user is asking questions about a specific document.
-Answer ONLY based on the document content provided below. If the answer is not in the document, say so clearly.
-Be concise (2-3 sentences max per answer). Flag anything risky or unusual clearly.
-Never make up document details.
+    if (documentId && contextText) {
+      systemPrompt = `You are NotaryChain's AI Document Assistant. The user is asking about a specific document.
+Primary Context (Document Text):
+${contextText.substring(0, 3500)}
 
-DOCUMENT CONTENT:
-${contextText.substring(0, 3500)}`;
+Instructions:
+- If the question pertains to the document, answer accurately based on the text.
+- If the user asks a general question (e.g., how NotaryChain works, general legal/notary questions, platform features), answer helpful and concisely.
+- Keep responses concise (2-3 sentences). Be friendly and professional.`;
     } else {
-      systemPrompt = `You are NotaryChain's AI Assistant. NotaryChain is an enterprise legal document verification platform using AI for:
-- Fraud detection and tamper analysis on uploaded documents
-- OCR extraction and entity recognition
-- Notarization workflows with digital audit trails
-- Identity verification and face liveness checks
-- Blockchain-backed document hashing (Polygon USDC settlement via Neobank)
+      systemPrompt = `You are NotaryChain AI, an intelligent, helpful AI assistant for the NotaryChain platform.
 
-Help users understand how to use the platform, guide them through uploading, verifying, or signing documents.
-Be friendly, concise, and helpful. Keep answers under 3 sentences unless a detailed explanation is needed.`;
+About NotaryChain:
+- **Fraud & Tamper Detection**: Analyzes document metadata, pixel anomalies, text consistency, and AI risk scoring.
+- **Biometric Face Verification**: Uses InsightFace AI vector embeddings & Liveness detection to verify user identity against Google/registered profiles.
+- **Blockchain Verification**: Anchors SHA-256 document hashes to the Polygon Amoy blockchain for immutable, verifiable proof.
+- **Digital Notarization & Neobank**: Offers automated audit logging, digital certificates, and Polygon USDC financial workflows.
+
+Instructions:
+- Answer all user questions clearly, accurately, and concisely.
+- Explain fraud detection, notarization, document hashing, platform features, or general knowledge questions intelligently.
+- Keep answers concise, clear, and structured (2-4 sentences max per response).`;
     }
 
     const messages = [
