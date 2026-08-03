@@ -30,6 +30,12 @@ async function getOrCreateAccountInternal(req) {
       kycStatus: 'ACTIVE',
       asset: 'USDC',
       chain: 'polygon',
+      rawBalance: 2450.00,
+      transactions: [
+        { id: 'txn_901', type: 'P2P_SEND', title: 'Sent to @ada', amount: '-$150.00', status: 'Completed', date: '2 mins ago', icon: 'send', txHash: '0x8f2a...91b' },
+        { id: 'txn_902', type: 'CASH_IN', title: '7-Eleven Cash Top-Up', amount: '+$500.00', status: 'Completed', date: 'Yesterday', icon: 'cash', txHash: '0x3c1b...44e' },
+        { id: 'txn_903', type: 'VIRTUAL_BANK', title: 'ACH Direct Deposit', amount: '+$2,100.00', status: 'Completed', date: 'Jul 28, 2026', icon: 'bank', txHash: '0x991f...10a' }
+      ],
       createdAt: new Date()
     };
     userOmsStore.set(userId, account);
@@ -67,6 +73,8 @@ exports.onboard = async (req, res, next) => {
       kycStatus: 'ACTIVE',
       asset: 'USDC',
       chain: 'polygon',
+      rawBalance: 2450.00,
+      transactions: [],
       createdAt: new Date()
     };
 
@@ -88,7 +96,10 @@ exports.onboard = async (req, res, next) => {
     return res.json({
       success: true,
       message: 'Successfully onboarded on Polygon Open Money Stack! Custodial USDC wallet provisioned.',
-      data: omsAccount
+      data: {
+        ...omsAccount,
+        balance: '2,450.00'
+      }
     });
   } catch (err) {
     next(err);
@@ -101,13 +112,18 @@ exports.onboard = async (req, res, next) => {
 exports.getAccount = async (req, res, next) => {
   try {
     const account = await getOrCreateAccountInternal(req);
-    const balance = await polygonOms.getBalance(account.customerId);
+
+    const formattedBalance = account.rawBalance.toLocaleString('en-US', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
 
     return res.json({
       success: true,
       data: {
         ...account,
-        balance: balance.availableBalance || '2450.00',
+        balance: formattedBalance,
+        rawBalance: account.rawBalance,
         currency: 'USD',
         underlyingRail: 'USDC on Polygon'
       }
@@ -134,13 +150,28 @@ exports.getCashLocations = async (req, res, next) => {
 };
 
 /**
- * Generate Cash-In Barcode Deposit Code
+ * Generate Cash-In Barcode Deposit Code & Top-Up Balance
  */
 exports.createCashIn = async (req, res, next) => {
   try {
     const { amount } = req.body;
     const account = await getOrCreateAccountInternal(req);
     const cashIn = await polygonOms.createCashIn(account.customerId, amount || 100, account.walletId);
+
+    const numAmount = parseFloat(amount) || 100;
+    if (numAmount > 0) {
+      account.rawBalance += numAmount;
+      account.transactions.unshift({
+        id: `txn_${Date.now()}`,
+        type: 'CASH_IN',
+        title: `Cash Top-Up ($${numAmount.toFixed(2)})`,
+        amount: `+$${numAmount.toFixed(2)}`,
+        status: 'Completed',
+        date: 'Just now',
+        icon: 'cash',
+        txHash: `0x${Math.random().toString(16).substring(2, 10)}...`
+      });
+    }
 
     if (mongoose.connection.readyState === 1) {
       try {
@@ -184,12 +215,20 @@ exports.createVirtualAccount = async (req, res, next) => {
 };
 
 /**
- * Send Money P2P (Execute Quote & Transaction with Gas Sponsorship)
+ * Send Money P2P (Deduct Balance & Record Transaction)
  */
 exports.sendMoney = async (req, res, next) => {
   try {
     const { recipient, amount, note } = req.body;
     const account = await getOrCreateAccountInternal(req);
+
+    const numAmount = parseFloat(amount) || 0;
+    if (numAmount > account.rawBalance) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient funds. Your balance is $${account.rawBalance.toFixed(2)} USD.`
+      });
+    }
 
     // Determine recipient destination address
     let targetAddress = recipient;
@@ -218,6 +257,21 @@ exports.sendMoney = async (req, res, next) => {
     // 2. Execute Transaction against Quote
     const txn = await polygonOms.executeTransaction(quote.id);
 
+    // 3. Dynamic Balance Reduction & Ledger Entry
+    if (numAmount > 0) {
+      account.rawBalance = Math.max(0, account.rawBalance - numAmount);
+      account.transactions.unshift({
+        id: `txn_${Date.now()}`,
+        type: 'P2P_SEND',
+        title: `Sent to ${recipient}`,
+        amount: `-$${numAmount.toFixed(2)}`,
+        status: 'Completed',
+        date: 'Just now',
+        icon: 'send',
+        txHash: txn.txHash || `0x${Math.random().toString(16).substring(2, 10)}...`
+      });
+    }
+
     if (mongoose.connection.readyState === 1) {
       try {
         await AuditLog.create({
@@ -233,14 +287,15 @@ exports.sendMoney = async (req, res, next) => {
 
     return res.json({
       success: true,
-      message: `Successfully transferred $${amount} USD to ${recipient}! Gas sponsored by Polygon.`,
+      message: `Successfully transferred $${numAmount.toFixed(2)} USD to ${recipient}! Gas sponsored by Polygon.`,
       data: {
         transactionId: txn.id,
         status: txn.status || 'completed',
         txHash: txn.txHash,
-        amount,
+        amount: numAmount.toFixed(2),
         recipient,
         note,
+        newBalance: account.rawBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }),
         timestamp: new Date()
       }
     });
@@ -250,12 +305,20 @@ exports.sendMoney = async (req, res, next) => {
 };
 
 /**
- * Withdraw Money to External Bank Account
+ * Withdraw Money to External Bank Account (Deduct Balance)
  */
 exports.withdrawMoney = async (req, res, next) => {
   try {
     const { amount, accountNumber, routingNumber } = req.body;
     const account = await getOrCreateAccountInternal(req);
+
+    const numAmount = parseFloat(amount) || 0;
+    if (numAmount > account.rawBalance) {
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient funds. Your balance is $${account.rawBalance.toFixed(2)} USD.`
+      });
+    }
 
     const extBank = await polygonOms.createExternalAccount(account.customerId, {
       accountNumber,
@@ -268,12 +331,27 @@ exports.withdrawMoney = async (req, res, next) => {
 
     const txn = await polygonOms.executeTransaction(quote.id);
 
+    // Deduct Balance & Record Transaction
+    if (numAmount > 0) {
+      account.rawBalance = Math.max(0, account.rawBalance - numAmount);
+      account.transactions.unshift({
+        id: `txn_${Date.now()}`,
+        type: 'BANK_WITHDRAW',
+        title: `Payout to Bank (${accountNumber ? accountNumber.slice(-4) : '4321'})`,
+        amount: `-$${numAmount.toFixed(2)}`,
+        status: 'Processing',
+        date: 'Just now',
+        icon: 'withdraw',
+        txHash: `0x${Math.random().toString(16).substring(2, 10)}...`
+      });
+    }
+
     return res.json({
       success: true,
-      message: `Successfully initiated bank payout of $${amount} USD to bank ending in ${accountNumber ? accountNumber.slice(-4) : '4321'}.`,
+      message: `Successfully initiated bank payout of $${numAmount.toFixed(2)} USD to bank ending in ${accountNumber ? accountNumber.slice(-4) : '4321'}.`,
       data: {
         payoutId: txn.id,
-        amount,
+        amount: numAmount.toFixed(2),
         bankAccountId: extBank.id,
         status: 'processing',
         estimatedArrival: '1-2 Business Days'
@@ -289,17 +367,10 @@ exports.withdrawMoney = async (req, res, next) => {
  */
 exports.getTransactions = async (req, res, next) => {
   try {
-    const sampleTxns = [
-      { id: 'txn_901', type: 'P2P_SEND', title: 'Sent to @ada', amount: '-$150.00', status: 'Completed', date: '2 mins ago', icon: 'send', txHash: '0x8f2a...91b' },
-      { id: 'txn_902', type: 'CASH_IN', title: 'Cash Deposit at 7-Eleven', amount: '+$500.00', status: 'Completed', date: 'Yesterday', icon: 'cash', txHash: '0x3c1b...44e' },
-      { id: 'txn_903', type: 'VIRTUAL_BANK', title: 'ACH Direct Deposit', amount: '+$2,100.00', status: 'Completed', date: 'Jul 28, 2026', icon: 'bank', txHash: '0x991f...10a' },
-      { id: 'txn_904', type: 'P2P_RECEIVE', title: 'Received from @satoshi', amount: '+$350.00', status: 'Completed', date: 'Jul 25, 2026', icon: 'receive', txHash: '0x44ab...29f' },
-      { id: 'txn_905', type: 'BANK_WITHDRAW', title: 'Payout to Chase Bank', amount: '-$400.00', status: 'Processing', date: 'Jul 22, 2026', icon: 'withdraw', txHash: '0x12ed...98c' }
-    ];
-
+    const account = await getOrCreateAccountInternal(req);
     return res.json({
       success: true,
-      data: sampleTxns
+      data: account.transactions || []
     });
   } catch (err) {
     next(err);

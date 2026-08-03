@@ -1,8 +1,13 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { HiCheckCircle, HiArrowUpRight, HiArrowDownLeft, HiQrCode, HiOutlineBuildingLibrary, HiSparkles } from 'react-icons/hi2';
+import { HiCheckCircle, HiArrowUpRight, HiArrowDownLeft, HiQrCode, HiOutlineBuildingLibrary } from 'react-icons/hi2';
 
 export default function HomeScreen({ account, onNavigate }) {
+  const transactions = account?.transactions || [
+    { id: 'txn_901', type: 'P2P_SEND', title: 'Sent to @ada', amount: '-$150.00', status: 'Completed', date: '2 mins ago', icon: 'send' },
+    { id: 'txn_902', type: 'CASH_IN', title: '7-Eleven Cash Top-Up', amount: '+$500.00', status: 'Completed', date: 'Yesterday', icon: 'cash' },
+  ];
+
   return (
     <div className="p-4 space-y-5">
       {/* Header Profile Badge */}
@@ -27,7 +32,7 @@ export default function HomeScreen({ account, onNavigate }) {
         </button>
       </div>
 
-      {/* Main Balance Card (Universal Exports Design) */}
+      {/* Main Balance Card */}
       <motion.div
         initial={{ scale: 0.95, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -122,7 +127,7 @@ export default function HomeScreen({ account, onNavigate }) {
         </button>
       </div>
 
-      {/* Recent Activity Mini Feed */}
+      {/* Recent Activity Live Feed */}
       <div>
         <div className="flex items-center justify-between mb-2">
           <h3 className="text-xs font-semibold text-slate-300">Recent Transactions</h3>
@@ -132,37 +137,25 @@ export default function HomeScreen({ account, onNavigate }) {
         </div>
 
         <div className="space-y-2">
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-full bg-emerald-500/10 text-emerald-400 flex items-center justify-center">
-                🏪
+          {transactions.slice(0, 4).map((tx) => (
+            <div key={tx.id} className="p-3 rounded-xl bg-slate-900/60 border border-white/5 flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <div className="w-8 h-8 rounded-full bg-slate-800 text-base flex items-center justify-center">
+                  {tx.icon === 'send' ? '💸' : tx.icon === 'cash' ? '🏪' : tx.icon === 'bank' ? '🏦' : '📥'}
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-white">{tx.title}</div>
+                  <div className="text-[10px] text-slate-400">{tx.date}</div>
+                </div>
               </div>
-              <div>
-                <div className="text-xs font-medium text-white">7-Eleven Cash Top-Up</div>
-                <div className="text-[10px] text-slate-400">Deposit Code • Completed</div>
-              </div>
-            </div>
-            <div className="text-right">
-              <div className="text-xs font-semibold text-emerald-400">+$500.00</div>
-              <div className="text-[10px] text-slate-400">Yesterday</div>
-            </div>
-          </div>
-
-          <div className="p-3 rounded-xl bg-slate-900/60 border border-white/5 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-8 h-8 rounded-full bg-primary-500/10 text-primary-400 flex items-center justify-center">
-                💸
-              </div>
-              <div>
-                <div className="text-xs font-medium text-white">Sent to @ada</div>
-                <div className="text-[10px] text-slate-400">Polygon Instant P2P</div>
+              <div className="text-right">
+                <div className={`text-xs font-bold ${tx.amount.startsWith('+') ? 'text-emerald-400' : 'text-slate-200'}`}>
+                  {tx.amount}
+                </div>
+                <div className="text-[10px] text-slate-400">{tx.status}</div>
               </div>
             </div>
-            <div className="text-right">
-              <div className="text-xs font-semibold text-slate-200">-$150.00</div>
-              <div className="text-[10px] text-slate-400">2 mins ago</div>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>
