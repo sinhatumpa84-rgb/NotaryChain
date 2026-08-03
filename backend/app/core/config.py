@@ -1,10 +1,16 @@
 """
 Application configuration settings
 """
-from typing import List, Optional
-from pydantic_settings import BaseSettings
-from pydantic import Field, validator
-import os
+try:
+    from pydantic_settings import BaseSettings
+except ImportError:
+    from pydantic import BaseSettings  # type: ignore
+
+try:
+    from pydantic import Field, field_validator
+except ImportError:
+    from pydantic import Field, validator as field_validator  # type: ignore
+
 from pathlib import Path
 
 
@@ -19,18 +25,19 @@ class Settings(BaseSettings):
     LOG_LEVEL: str = "INFO"
     
     # Database
-    DATABASE_URL: str = Field(..., env="DATABASE_URL")
+    DATABASE_URL: str = Field(default="postgresql://postgres:password@localhost:5432/notarychain", env="DATABASE_URL")
     DB_POOL_SIZE: int = 20
     DB_MAX_OVERFLOW: int = 40
     
-    # Redis
-    REDIS_URL: str = Field(..., env="REDIS_URL")
-    REDIS_HOST: str = "localhost"
-    REDIS_PORT: int = 6379
-    REDIS_PASSWORD: Optional[str] = None
+    # Redis Configuration (Reads REDIS_URL env var)
+    REDIS_URL: Optional[str] = Field(default=None, env="REDIS_URL")
+    REDIS_HOST: Optional[str] = Field(default=None, env="REDIS_HOST")
+    REDIS_PORT: Optional[int] = Field(default=None, env="REDIS_PORT")
+    REDIS_PASSWORD: Optional[str] = Field(default=None, env="REDIS_PASSWORD")
+    REDIS_USERNAME: Optional[str] = Field(default="default", env="REDIS_USERNAME")
     
     # JWT
-    JWT_SECRET_KEY: str = Field(..., env="JWT_SECRET_KEY")
+    JWT_SECRET_KEY: str = Field(default="dev-jwt-secret-key-change-in-production", env="JWT_SECRET_KEY")
     JWT_ALGORITHM: str = "HS256"
     JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     JWT_REFRESH_TOKEN_EXPIRE_DAYS: int = 7
@@ -102,8 +109,8 @@ class Settings(BaseSettings):
     MAX_UPLOAD_SIZE_MB: int = 50
     
     # Celery
-    CELERY_BROKER_URL: str = Field(..., env="CELERY_BROKER_URL")
-    CELERY_RESULT_BACKEND: str = Field(..., env="CELERY_RESULT_BACKEND")
+    CELERY_BROKER_URL: Optional[str] = Field(default=None, env="CELERY_BROKER_URL")
+    CELERY_RESULT_BACKEND: Optional[str] = Field(default=None, env="CELERY_RESULT_BACKEND")
     
     # Monitoring
     SENTRY_DSN: Optional[str] = None
@@ -146,6 +153,8 @@ class Settings(BaseSettings):
     # Firebase Admin
     FIREBASE_PROJECT_ID: Optional[str] = Field(None, env="FIREBASE_PROJECT_ID")
     FIREBASE_SERVICE_ACCOUNT_PATH: Optional[str] = Field(None, env="FIREBASE_SERVICE_ACCOUNT_PATH")
+    FIREBASE_CLIENT_EMAIL: Optional[str] = Field(None, env="FIREBASE_CLIENT_EMAIL")
+    FIREBASE_PRIVATE_KEY: Optional[str] = Field(None, env="FIREBASE_PRIVATE_KEY")
     
     # Paths
     BASE_DIR: Path = Path(__file__).resolve().parent.parent.parent
@@ -153,14 +162,16 @@ class Settings(BaseSettings):
     TEMP_DIR: Path = BASE_DIR / "temp"
     LOG_DIR: Path = BASE_DIR / "logs"
     
-    @validator("CORS_ORIGINS", pre=True)
+    @field_validator("CORS_ORIGINS", mode="before")
+    @classmethod
     def parse_cors_origins(cls, v):
         """Parse CORS origins from string or list"""
         if isinstance(v, str):
             return [origin.strip() for origin in v.split(",")]
         return v
-    
-    @validator("ALLOWED_EXTENSIONS", pre=True)
+
+    @field_validator("ALLOWED_EXTENSIONS", mode="before")
+    @classmethod
     def parse_allowed_extensions(cls, v):
         """Parse allowed extensions from string or list"""
         if isinstance(v, str):

@@ -42,14 +42,17 @@ async def lifespan(app: FastAPI):
     """Application lifespan events"""
     # Startup
     logger.info("Starting Digital Notary Platform API")
-    await init_db()
-    logger.info("Database initialized")
-    await redis_service.connect()
-    logger.info("Redis connected")
+    try:
+        await init_db()
+        logger.info("Database initialized")
+    except Exception as exc:
+        logger.warning("⚠ Database connection failed on startup: %s", exc)
+
+    # Perform Redis connection check (logs ✓ Redis Connected or ⚠ Redis unavailable)
+    from app.core.redis import check_redis_connection
+    check_redis_connection()
     yield
     # Shutdown
-    await redis_service.disconnect()
-    logger.info("Redis disconnected")
     logger.info("Shutting down Digital Notary Platform API")
 
 
@@ -140,36 +143,25 @@ async def general_exception_handler(request: Request, exc: Exception):
 @app.get("/health", tags=["Health"], response_model=dict)
 async def health_check():
     """Health check endpoint for monitoring"""
-    from app.services.redis_service import redis_service
+    from app.core.redis import check_redis_connection
     
     # Check database
-    db_status = "healthy"
+    db_ok = True
     try:
         from app.core.database import engine
         async with engine.connect() as conn:
             await conn.execute("SELECT 1")
     except Exception as e:
-        db_status = f"unhealthy: {str(e)}"
+        db_ok = False
         logger.error(f"Database health check failed: {str(e)}")
     
     # Check Redis
-    redis_status = "healthy"
-    try:
-        if redis_service.redis_client:
-            await redis_service.redis_client.ping()
-        else:
-            redis_status = "not connected"
-    except Exception as e:
-        redis_status = f"unhealthy: {str(e)}"
-        logger.error(f"Redis health check failed: {str(e)}")
+    redis_connected = check_redis_connection()
     
     return {
-        "status": "healthy" if db_status == "healthy" and redis_status == "healthy" else "degraded",
-        "service": settings.APP_NAME,
-        "version": "1.0.0",
-        "environment": settings.ENVIRONMENT,
-        "database": db_status,
-        "redis": redis_status,
+        "api": "ok",
+        "database": "ok" if db_ok else "disconnected",
+        "redis": "connected" if redis_connected else "disconnected",
     }
 
 

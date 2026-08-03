@@ -5,6 +5,7 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   signInWithPopup,
+  signInWithRedirect,
   signOut as firebaseSignOut,
   sendEmailVerification,
   sendPasswordResetEmail,
@@ -13,6 +14,7 @@ import {
   User,
   UserCredential,
   AuthError,
+  MultiFactorError,
   RecaptchaVerifier,
   PhoneAuthProvider,
   signInWithPhoneNumber,
@@ -20,6 +22,7 @@ import {
   multiFactor,
   PhoneMultiFactorGenerator,
   MultiFactorResolver,
+  getMultiFactorResolver,
   updateEmail,
   reauthenticateWithCredential,
   EmailAuthProvider,
@@ -28,6 +31,7 @@ import {
 // import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, googleProvider, microsoftProvider, getRecaptchaVerifier } from '@/lib/firebase';
 import { userService, UserProfile } from '@/services/user-service';
+import { normalizeAuthErrorPayload, shouldUseRedirectFlow } from '@/services/auth-error-utils';
 import { UserRole } from '@/types';
 
 export interface RegisterData {
@@ -106,20 +110,19 @@ class AuthService {
   async signIn(email: string, password: string): Promise<User> {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      
+
       // Update last login in Supabase
       await userService.updateLastLogin(userCredential.user.uid);
-      
+
       return userCredential.user;
     } catch (error) {
-      const authError = error as AuthError;
-      
-      // Handle MFA required
-      if (authError.code === 'auth/multi-factor-auth-required') {
-        throw new Error('MFA_REQUIRED');
+      const normalizedError = this.normalizeAuthError(error, 'Invalid credentials', 'Email/password sign-in');
+
+      if (normalizedError.code === 'auth/multi-factor-auth-required') {
+        throw normalizedError;
       }
-      
-      throw new Error(this.getErrorMessage(authError.code));
+
+      throw normalizedError;
     }
   }
 
@@ -127,9 +130,16 @@ class AuthService {
    * Sign in with Google
    */
   async signInWithGoogle(): Promise<User> {
+    const isLocalhost = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+    if (isLocalhost) {
+      await signInWithRedirect(auth, googleProvider);
+      throw new Error('REDIRECT_REQUIRED');
+    }
+
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      
+
       // Create or update user profile in Supabase
       await userService.createOrUpdateUserProfile(
         result.user.uid,
@@ -142,11 +152,21 @@ class AuthService {
         },
         UserRole.COMPANY
       );
-      
+
       return result.user;
     } catch (error) {
-      const authError = error as AuthError;
-      throw new Error(this.getErrorMessage(authError.code));
+      const normalized = this.normalizeAuthError(error, 'Google sign-in failed', 'Google sign-in');
+
+      if (shouldUseRedirectFlow(error, typeof window !== 'undefined' ? window.location.hostname : '')) {
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          throw new Error('REDIRECT_REQUIRED');
+        } catch (redirectError) {
+          throw this.normalizeAuthError(redirectError, 'Google sign-in failed', 'Google sign-in');
+        }
+      }
+
+      throw normalized;
     }
   }
 
@@ -154,9 +174,16 @@ class AuthService {
    * Sign in with Microsoft
    */
   async signInWithMicrosoft(): Promise<User> {
+    const isLocalhost = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname);
+
+    if (isLocalhost) {
+      await signInWithRedirect(auth, microsoftProvider);
+      throw new Error('REDIRECT_REQUIRED');
+    }
+
     try {
       const result = await signInWithPopup(auth, microsoftProvider);
-      
+
       // Create or update user profile in Supabase
       await userService.createOrUpdateUserProfile(
         result.user.uid,
@@ -169,11 +196,21 @@ class AuthService {
         },
         UserRole.COMPANY
       );
-      
+
       return result.user;
     } catch (error) {
-      const authError = error as AuthError;
-      throw new Error(this.getErrorMessage(authError.code));
+      const normalized = this.normalizeAuthError(error, 'Microsoft sign-in failed', 'Microsoft sign-in');
+
+      if (shouldUseRedirectFlow(error, typeof window !== 'undefined' ? window.location.hostname : '')) {
+        try {
+          await signInWithRedirect(auth, microsoftProvider);
+          throw new Error('REDIRECT_REQUIRED');
+        } catch (redirectError) {
+          throw this.normalizeAuthError(redirectError, 'Microsoft sign-in failed', 'Microsoft sign-in');
+        }
+      }
+
+      throw normalized;
     }
   }
 
@@ -378,6 +415,39 @@ class AuthService {
    */
   async updateUserProfile(uid: string, data: Partial<UserProfile>): Promise<void> {
     await userService.updateUserProfile(uid, data);
+  }
+
+  /**
+   * Normalize Firebase auth errors so the UI can route MFA flows correctly.
+   */
+  private normalizeAuthError(error: unknown, fallbackMessage: string, provider: string): Error & { code?: string; resolver?: unknown; customData?: Record<string, unknown>; credential?: unknown } {
+    const normalized = normalizeAuthErrorPayload(error, fallbackMessage, { provider });
+
+    const authError = new Error(
+      normalized.code === 'auth/multi-factor-auth-required' ? 'MFA_REQUIRED' : this.getErrorMessage(normalized.code || '')
+    ) as Error & { code?: string; resolver?: unknown; customData?: Record<string, unknown>; credential?: unknown };
+
+    authError.code = normalized.code;
+    authError.resolver = normalized.resolver;
+    authError.customData = normalized.logContext as Record<string, unknown>;
+    authError.credential = normalized.logContext.credential;
+
+    if (authError.code === 'auth/multi-factor-auth-required') {
+      try {
+        authError.resolver = getMultiFactorResolver(auth, error as MultiFactorError);
+      } catch (resolverError) {
+        console.error(`[AuthService] ${provider} MFA resolver unavailable`, resolverError);
+      }
+    }
+
+    console.error(`[AuthService] ${provider} failed`, {
+      code: authError.code,
+      message: authError.message,
+      email: authError.customData?.email || null,
+      credential: authError.credential || null,
+    });
+
+    return authError;
   }
 
   /**

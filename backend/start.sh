@@ -5,15 +5,15 @@
 echo "Starting Digital Notary Platform Backend..."
 
 # Wait for database
-echo "Waiting for PostgreSQL..."
-while ! nc -z postgres 5432; do
+echo "Waiting for PostgreSQL on localhost:5432..."
+while ! nc -z localhost 5432; do
   sleep 1
 done
 echo "PostgreSQL is ready!"
 
 # Wait for Redis
-echo "Waiting for Redis..."
-while ! nc -z redis 6379; do
+echo "Waiting for Redis on localhost:6379..."
+while ! nc -z localhost 6379; do
   sleep 1
 done
 echo "Redis is ready!"

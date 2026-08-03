@@ -187,6 +187,10 @@ class DocumentService {
       throw new Error('Document not found');
     }
 
+    if (!document.file_path) {
+      throw new Error('Document file path is missing');
+    }
+
     // Delete file from storage
     const { error: storageError } = await supabase.storage
       .from(DOCUMENTS_BUCKET)
@@ -217,6 +221,10 @@ class DocumentService {
     const document = await this.getDocument(documentId);
     if (!document) {
       throw new Error('Document not found');
+    }
+
+    if (!document.file_path) {
+      throw new Error('Document file path is missing');
     }
 
     const { data, error } = await supabase.storage

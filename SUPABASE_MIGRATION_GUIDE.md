@@ -345,7 +345,7 @@ NEXT_PUBLIC_FIREBASE_API_KEY=AIzaSyBTesMAShndQ1Xafo8FKfWy6vFDQ0MRYvI
 # ... other Firebase vars
 ```
 
-**Backend (Docker/EC2):**
+**Backend (local or VM):**
 ```
 SUPABASE_URL=https://rdnieuljpwvngkkeacpq.supabase.co
 SUPABASE_SERVICE_ROLE_KEY=<service_role_key>

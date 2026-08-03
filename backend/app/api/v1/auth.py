@@ -1,6 +1,7 @@
 """
 Authentication API endpoints
 """
+import logging
 from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -24,7 +25,9 @@ from app.schemas.user import UserResponse
 from app.services.auth_service import AuthService
 from app.services.user_service import UserService
 from app.core.config import settings
+from app.middleware.auth import get_current_firebase_user, FirebaseUser, require_role, require_verified_email
 
+logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
@@ -700,3 +703,53 @@ async def microsoft_oauth_callback(
         refresh_token=refresh_token,
         expires_in=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES * 60
     )
+
+
+# ---------------------------------------------------------------------------
+# Firebase-first endpoints — use Firebase Admin token verification
+# ---------------------------------------------------------------------------
+
+@router.get("/me", tags=["Auth"])
+async def get_current_user_firebase(
+    firebase_user: FirebaseUser = Depends(get_current_firebase_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """
+    Return the current authenticated user's profile.
+
+    Requires: Authorization: Bearer <Firebase ID Token>
+    """
+    # Try to load the full DB profile
+    db_user = await UserService.get_user_by_firebase_uid(db, firebase_user.uid)
+    if db_user:
+        return {
+            "uid": firebase_user.uid,
+            "email": firebase_user.email,
+            "email_verified": firebase_user.email_verified,
+            "role": firebase_user.role or getattr(db_user, "role", None),
+            "profile": db_user,
+        }
+
+    # No DB record yet (OAuth user not yet synced)
+    return {
+        "uid": firebase_user.uid,
+        "email": firebase_user.email,
+        "email_verified": firebase_user.email_verified,
+        "role": firebase_user.role,
+        "profile": None,
+    }
+
+
+@router.post("/logout-everywhere", tags=["Auth"])
+async def logout_everywhere(
+    firebase_user: FirebaseUser = Depends(get_current_firebase_user),
+):
+    """
+    Revoke all refresh tokens for the current user (logout from all devices).
+
+    Requires: Authorization: Bearer <Firebase ID Token>
+    """
+    from app.core.firebase import revoke_refresh_tokens
+    revoke_refresh_tokens(firebase_user.uid)
+    logger.info("All tokens revoked for uid=%s", firebase_user.uid)
+    return {"message": "Successfully logged out from all devices"}

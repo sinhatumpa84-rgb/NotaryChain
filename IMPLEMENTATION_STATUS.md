@@ -4,8 +4,7 @@
 
 ### 1. Project Structure ✓
 - Monorepo setup with backend (FastAPI) and frontend (Next.js)
-- Docker Compose configuration
-- Kubernetes manifests
+- Local development workflow
 - GitHub Actions CI/CD pipeline
 - Nginx reverse proxy configuration
 

@@ -1,277 +1,33 @@
 'use client';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import toast from 'react-hot-toast';
-import { Shield, Mail, Lock, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { authService } from '@/services/auth-service';
-import { auth } from '@/lib/firebase';
-import { useAuth } from '@/hooks/useAuth';
-import type { LoginFormData } from '@/types';
-import { useEffect } from 'react';
-
-const MAX_ATTEMPTS = 5;
-const LOCKOUT_DURATION = 60;
-
-const loginSchema = z.object({
-  email: z.string().email('Invalid email address'),
-  password: z.string().min(1, 'Password is required'),
-  remember: z.boolean().optional(),
-});
-
-type LoginFormValues = z.infer<typeof loginSchema>;
+import { Shield } from 'lucide-react';
+import { LoginForm } from '@/components/auth/LoginForm';
 
 export default function LoginPage() {
-  const router = useRouter();
-  const [showPassword, setShowPassword] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [failedAttempts, setFailedAttempts] = useState(0);
-  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null);
-  const { refreshProfile } = useAuth();
-
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm<LoginFormValues>({
-    resolver: zodResolver(loginSchema),
-    defaultValues: {
-      email: '',
-      password: '',
-      remember: false,
-    },
-  });
-
-  useEffect(() => {
-    console.log('[Login] Page mounted');
-    return () => console.log('[Login] Page unmounted');
-  }, []);
-
-  const getLockoutRemaining = () => {
-    if (!lockoutUntil) return 0;
-    const remaining = Math.ceil((lockoutUntil - Date.now()) / 1000);
-    return Math.max(0, remaining);
-  };
-
-  const onSubmit = async (data: LoginFormValues) => {
-    if (lockoutUntil && Date.now() < lockoutUntil) {
-      toast.error(`Too many attempts. Try again in ${getLockoutRemaining()}s`);
-      return;
-    }
-
-    setIsSubmitting(true);
-    try {
-      console.log('[Login] Attempting login for:', data.email);
-      const firebaseUser = await authService.signIn(data.email, data.password);
-      console.log('[Login] Firebase auth successful, uid:', firebaseUser.uid);
-
-      console.log('[Login] Refreshing user profile from Supabase');
-      try {
-        const profile = await authService.getUserProfile(firebaseUser.uid);
-        if (profile) {
-          console.log('[Login] Profile loaded:', profile.email);
-        }
-      } catch (profileErr) {
-        console.warn('[Login] Profile fetch non-critical error:', profileErr);
-      }
-
-      setFailedAttempts(0);
-      setLockoutUntil(null);
-      toast.success('Login successful!');
-      console.log('[Login] Redirecting to dashboard');
-      router.push('/dashboard');
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Invalid credentials';
-      console.error('[Login] Error:', message);
-
-      const newAttempts = failedAttempts + 1;
-      setFailedAttempts(newAttempts);
-
-      if (newAttempts >= MAX_ATTEMPTS) {
-        const lockoutTime = Date.now() + LOCKOUT_DURATION * 1000;
-        setLockoutUntil(lockoutTime);
-        toast.error(`Too many attempts. Try again in ${LOCKOUT_DURATION}s`);
-      } else {
-        toast.error(message);
-      }
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-secondary-50 flex items-center justify-center px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center space-x-2">
-            <Shield className="h-10 w-10 text-primary-600" />
-            <span className="text-2xl font-bold text-secondary-900">Digital Notary</span>
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center px-4 sm:px-6 lg:px-8 py-12 relative overflow-hidden">
+      {/* Background glow effects */}
+      <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute bottom-1/4 right-1/4 w-80 h-80 bg-blue-500/10 rounded-full blur-3xl pointer-events-none" />
+
+      <div className="w-full max-w-md space-y-8 relative z-10">
+        <div className="text-center">
+          <Link href="/" className="inline-flex items-center space-x-3 group">
+            <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl group-hover:border-emerald-500/40 transition-colors">
+              <Shield className="h-8 w-8 text-emerald-400" />
+            </div>
+            <span className="text-2xl font-bold bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">
+              NotaryChain
+            </span>
           </Link>
-          <h2 className="mt-4 text-3xl font-bold text-secondary-900">Welcome back</h2>
-          <p className="mt-2 text-secondary-600">Sign in to your account</p>
-        </div>
-
-        <div className="bg-white rounded-2xl shadow-xl p-8">
-          <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-            <div>
-              <label className="block text-sm font-medium text-secondary-700 mb-2">
-                Email address
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-secondary-400" />
-                <input
-                  type="email"
-                  autoComplete="email"
-                  className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors ${
-                    errors.email ? 'border-red-500' : 'border-secondary-300'
-                  }`}
-                  placeholder="you@company.com"
-                  {...register('email')}
-                />
-              </div>
-              {errors.email && (
-                <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
-              )}
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-secondary-700 mb-2">
-                Password
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 text-secondary-400" />
-                <input
-                  type={showPassword ? 'text' : 'password'}
-                  autoComplete="current-password"
-                  className={`w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition-colors ${
-                    errors.password ? 'border-red-500' : 'border-secondary-300'
-                  }`}
-                  placeholder="Enter your password"
-                  {...register('password')}
-                />
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-secondary-400 hover:text-secondary-600"
-                >
-                  {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
-                </button>
-              </div>
-              {errors.password && (
-                <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between">
-              <label className="flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  className="rounded border-secondary-300 text-primary-600 focus:ring-primary-500"
-                  {...register('remember')}
-                />
-                <span className="text-sm text-secondary-600">Remember me</span>
-              </label>
-              <Link
-                href="/forgot-password"
-                className="text-sm text-primary-600 hover:text-primary-700"
-              >
-                Forgot password?
-              </Link>
-            </div>
-
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full bg-primary-600 text-white py-3 rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center justify-center"
-            >
-              {isSubmitting ? (
-                <Loader2 className="h-5 w-5 animate-spin" />
-              ) : lockoutUntil && Date.now() < lockoutUntil ? (
-                `Try again in ${getLockoutRemaining()}s`
-              ) : (
-                'Sign in'
-              )}
-            </button>
-          </form>
-
-          <div className="mt-6">
-            <div className="relative">
-              <div className="absolute inset-0 flex items-center">
-                <div className="w-full border-t border-secondary-200" />
-              </div>
-              <div className="relative flex justify-center text-sm">
-                <span className="bg-white px-4 text-secondary-500">Or continue with</span>
-              </div>
-            </div>
-
-            <div className="mt-6 grid grid-cols-2 gap-3">
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    setIsSubmitting(true);
-                    await authService.signInWithGoogle();
-                    await refreshProfile();
-                    toast.success('Login successful!');
-                    router.push('/dashboard');
-                  } catch (error) {
-                    const message = error instanceof Error ? error.message : 'Google sign-in failed';
-                    toast.error(message);
-                  } finally {
-                    setIsSubmitting(false);
-                  }
-                }}
-                className="flex items-center justify-center px-4 py-2.5 border border-secondary-300 rounded-lg hover:bg-secondary-50 transition-colors"
-              >
-                <svg className="h-5 w-5 mr-2" viewBox="0 0 24 24">
-                  <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 01-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1z" fill="#4285F4" />
-                  <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-                  <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
-                  <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-                </svg>
-                Google
-              </button>
-              <button
-                type="button"
-                onClick={async () => {
-                  try {
-                    setIsSubmitting(true);
-                    await authService.signInWithMicrosoft();
-                    await refreshProfile();
-                    toast.success('Login successful!');
-                    router.push('/dashboard');
-                  } catch (error) {
-                    const message = error instanceof Error ? error.message : 'Microsoft sign-in failed';
-                    toast.error(message);
-                  } finally {
-                    setIsSubmitting(false);
-                  }
-                }}
-                className="flex items-center justify-center px-4 py-2.5 border border-secondary-300 rounded-lg hover:bg-secondary-50 transition-colors"
-              >
-                <svg className="h-5 w-5 mr-2" viewBox="0 0 23 23">
-                  <rect x="1" y="1" width="10" height="10" fill="#f25022" />
-                  <rect x="12" y="1" width="10" height="10" fill="#7fba00" />
-                  <rect x="1" y="12" width="10" height="10" fill="#00a4ef" />
-                  <rect x="12" y="12" width="10" height="10" fill="#ffb900" />
-                </svg>
-                Microsoft
-              </button>
-            </div>
-          </div>
-
-          <p className="mt-8 text-center text-sm text-secondary-600">
-            Don&apos;t have an account?{' '}
-            <Link href="/register" className="text-primary-600 hover:text-primary-700 font-medium">
-              Create one
-            </Link>
+          <h2 className="mt-6 text-3xl font-bold tracking-tight text-white">Welcome back</h2>
+          <p className="mt-2 text-sm text-slate-400">
+            Sign in to access your digital notarizations and verified documents
           </p>
         </div>
-        <div id="recaptcha-container" />
+
+        <LoginForm />
       </div>
     </div>
   );

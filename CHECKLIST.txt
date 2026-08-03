@@ -1,186 +1,45 @@
-╔═══════════════════════════════════════════════════════════════╗
-║         DIGITAL NOTARY PLATFORM - SETUP CHECKLIST            ║
-╚═══════════════════════════════════════════════════════════════╝
-
-✅ = DONE (Automated)  |  ⬜ = TODO (Manual Required)
-
+﻿STEP 1: PREREQUISITES
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Python 3.11+
+- Node.js 20+
+- PostgreSQL 16+
+- Redis
+- Git
 
-AUTOMATED SETUP (COMPLETED)
+STEP 2: CREATE DATABASE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-✅ Frontend npm packages installed (853 packages)
-✅ Firebase integration code created
-✅ TypeScript types and interfaces defined
-✅ Authentication service with OAuth ready
-✅ React hooks (useAuth, useRequireAuth) created
-✅ Environment files created (.env.local, .env)
-✅ Documentation written (7 guides)
-✅ Project structure organized
+Create a local PostgreSQL database:
 
+```sql
+CREATE DATABASE notarychain;
+```
+
+STEP 3: BACKEND SETUP
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```bash
+cd backend
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+alembic upgrade head
+uvicorn app.main:app --reload
+```
 
-MANUAL STEPS REQUIRED
+STEP 4: FRONTEND SETUP
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+```bash
+cd frontend
+npm install
+npm run dev
+```
 
-STEP 1: INSTALL PYTHON (5 minutes)
+STEP 5: START REDIS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⬜ Download Python 3.11+ from https://www.python.org/downloads/
-⬜ Install with "Add Python to PATH" CHECKED
-⬜ Restart PowerShell
-⬜ Verify: python --version
-⬜ Verify: pip --version
+```bash
+redis-server
+```
 
-Commands after Python is installed:
-  cd backend
-  python -m venv venv
-  .\venv\Scripts\activate
-  pip install -r requirements.txt
-
+STEP 6: VERIFY
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-STEP 2: FIREBASE CONSOLE (5 minutes)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Firebase Project: signal-scout-483d5
-Console: https://console.firebase.google.com/project/signal-scout-483d5
-
-2a. Enable Authentication
-────────────────────────────────────────────────────────────────
-URL: .../authentication/providers
-
-⬜ Enable Email/Password authentication
-⬜ Enable Google OAuth (add your support email)
-⬜ Enable Microsoft OAuth (optional, needs Azure setup)
-⬜ Enable Phone authentication (optional)
-
-2b. Create Firestore Database
-────────────────────────────────────────────────────────────────
-URL: .../firestore
-
-⬜ Click "Create database"
-⬜ Select "Production mode"
-⬜ Choose location: us-central (or closest)
-⬜ Wait for creation (~30 seconds)
-
-2c. Deploy Firestore Security Rules
-────────────────────────────────────────────────────────────────
-⬜ Go to "Firestore Database" → "Rules" tab
-⬜ Open SETUP_INSTRUCTIONS.md section 3.3
-⬜ Copy all rules from that section
-⬜ Paste into Firebase Console
-⬜ Click "Publish"
-
-2d. Enable Cloud Storage
-────────────────────────────────────────────────────────────────
-URL: .../storage
-
-⬜ Click "Get started"
-⬜ Select "Production mode"
-⬜ Choose SAME location as Firestore
-⬜ Click "Done"
-
-2e. Deploy Storage Security Rules
-────────────────────────────────────────────────────────────────
-⬜ Go to "Storage" → "Rules" tab
-⬜ Open SETUP_INSTRUCTIONS.md section 3.5
-⬜ Copy all rules from that section
-⬜ Paste into Firebase Console
-⬜ Click "Publish"
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-STEP 3: DATABASE SETUP (5-15 minutes)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-OPTION A: Docker (Recommended, 5 minutes)
-────────────────────────────────────────────────────────────────
-⬜ Install Docker Desktop
-⬜ Run: docker-compose up -d postgres redis
-
-OPTION B: Manual Install (15 minutes)
-────────────────────────────────────────────────────────────────
-⬜ Install PostgreSQL from postgresql.org
-⬜ Install Redis from github.com/microsoftarchive/redis
-⬜ Create database: notary_db
-⬜ Create user: notary / notary123
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-STEP 4: RUN DATABASE MIGRATIONS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Commands:
-  cd backend
-  .\venv\Scripts\activate
-  alembic upgrade head
-
-⬜ Database migrations completed
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-STEP 5: START DEVELOPMENT SERVERS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Terminal 1 - Backend:
-  cd backend
-  .\venv\Scripts\activate
-  uvicorn app.main:app --reload
-
-Terminal 2 - Frontend:
-  cd frontend
-  npm run dev
-
-⬜ Backend running at http://localhost:8000
-⬜ Frontend running at http://localhost:3000
-⬜ API docs accessible at http://localhost:8000/docs
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-VERIFICATION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-⬜ Can access http://localhost:3000
-⬜ Can access http://localhost:8000/docs
-⬜ No errors in terminal logs
-⬜ Firebase Authentication tab shows enabled methods
-⬜ Firestore shows database created
-⬜ Can register a test user
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-TIME ESTIMATES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Python Installation:      5 minutes
-Backend Setup:            5 minutes
-Firebase Console Setup:   5 minutes
-Database Setup (Docker):  5 minutes
-Database Setup (Manual):  15 minutes
-────────────────────────────────────────────────────────────────
-TOTAL:                    20-30 minutes
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-HELPFUL DOCUMENTS
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-📄 TODO_MANUAL_STEPS.md      - Quick overview of manual steps
-📄 SETUP_INSTRUCTIONS.md     - Detailed step-by-step guide
-📄 FIREBASE_SETUP.md         - Complete Firebase configuration
-📄 QUICK_START.md            - Quick start guide
-📄 IMPLEMENTATION_STATUS.md  - Project roadmap and status
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-NEXT DEVELOPMENT TASKS (After Setup Complete)
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-1. Build authentication pages (login, register, password reset)
-2. Test Firebase authentication flow
-3. Create document upload component
-4. Implement OCR service
-5. Add digital signature support
-6. Build notary workflow
-7. Create role-specific dashboards
-
-See IMPLEMENTATION_STATUS.md for complete roadmap!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-🚀 START HERE: Open TODO_MANUAL_STEPS.md and begin Step 1!
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+- Backend: http://localhost:8000/docs
+- Frontend: http://localhost:3000

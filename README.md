@@ -1,277 +1,152 @@
-# Digital Notary & Document Authentication Platform
+# NotaryChain
 
-Enterprise-grade platform for secure, paperless notarization and document verification with AI-powered fraud detection.
+NotaryChain is an enterprise-grade platform for secure document notarization, verification, and fraud detection.
 
-## 🎯 Overview
+## Authentication System (Firebase Authentication)
 
-A complete digital transformation solution that eliminates paper-based document workflows for banks, financial institutions, legal firms, and businesses. Features include:
+NotaryChain uses **Firebase Authentication** as its single, unified authentication provider with **Firebase Admin SDK** for server-side token verification on FastAPI.
 
-- **Digital Notarization**: Complete paperless notarization workflow
-- **AI Fraud Detection**: Detect fake IDs, modified documents, deepfakes
-- **Multi-role Access**: Company, Notary, Bank, and Admin dashboards
-- **Document Security**: AES-256 encryption, digital signatures, blockchain hash storage
-- **Identity Verification**: eKYC, face verification, liveness detection
-- **Audit Trail**: Immutable logs with complete document lifecycle tracking
+### Authentication Features Supported
+- ✅ **Email & Password Authentication** (Strong password rules & Strength meter)
+- ✅ **Email Verification Required**
+- ✅ **Password Reset Flow**
+- ✅ **Google Sign-In**
+- ✅ **Microsoft OAuth Sign-In**
+- ✅ **Phone Number Authentication (SMS OTP)**
+- ✅ **Firebase Multi-Factor Authentication (MFA / 2FA)**
+- ✅ **Session Persistence & Automatic Token Refresh**
+- ✅ **Brute-Force Attack Lockout Protection**
+- ✅ **Secure Logout Everywhere (Refresh Token Revocation)**
+- ✅ **Role-Based Access Control (RBAC)** via Firebase Custom Claims & FastAPI dependencies
 
-## 🏗️ Architecture
+---
 
-```
-digital-notary-platform/
-├── backend/              # FastAPI Python backend
-│   ├── app/
-│   │   ├── api/         # REST API endpoints
-│   │   ├── models/      # Database models
-│   │   ├── services/    # Business logic
-│   │   ├── core/        # Security, config, auth
-│   │   └── ai/          # AI/ML services
-│   └── requirements.txt
-├── frontend/             # Next.js React frontend
-│   ├── src/
-│   │   ├── app/         # Next.js app router
-│   │   ├── components/  # Reusable components
-│   │   ├── lib/         # Utilities
-│   │   └── types/       # TypeScript types
-│   └── package.json
-├── docker-compose.yml    # Local development
-└── k8s/                  # Kubernetes manifests
-```
+## Project Authentication Structure
 
-## 🚀 Tech Stack
+```text
+frontend/
+  src/
+    lib/
+      firebase.ts             # Client Firebase initialization & RecaptchaVerifier factory
+    context/
+      AuthContext.tsx         # Global AuthProvider, token auto-refresh & MFA resolver
+    hooks/
+      useAuth.tsx             # Auth context hooks (useAuth, useRequireAuth, useRequireRole)
+    middleware.ts             # Next.js Edge Middleware for route protection
+    components/
+      auth/
+        LoginForm.tsx         # Dark glassmorphic login form with 2FA resolver
+        RegisterForm.tsx      # Registration form with password strength meter
+        ForgotPassword.tsx    # Password reset email form
+        VerifyEmail.tsx       # Email verification pending & resend component
+        PhoneVerification.tsx # Phone number & 6-digit OTP verification
+        MFASetup.tsx          # Step-by-step SMS 2FA enrollment & management
+        ProtectedRoute.tsx    # Route guard component with loading spinner
+    app/
+      login/page.tsx
+      register/page.tsx
+      forgot-password/page.tsx
+      verify-email/page.tsx
+      mfa-setup/page.tsx
+      phone-verification/page.tsx
 
-### Backend
-- **FastAPI** - High-performance Python web framework
-- **PostgreSQL** - Primary database
-- **Redis** - Caching and session management
-- **S3-compatible storage** - Document storage
-- **Celery** - Async task processing
-
-### Frontend
-- **Next.js 14** - React framework with App Router
-- **TypeScript** - Type safety
-- **Tailwind CSS** - Utility-first styling
-- **Firebase Authentication** - User authentication (Google, Microsoft OAuth, MFA)
-- **Supabase** - PostgreSQL database and file storage
-- **React Query** - Data fetching and state management
-- **Zustand** - Global state management
-- **Framer Motion** - Animations
-- **React Query** - Data fetching
-
-### AI Services
-- **Tesseract OCR** - Document text extraction
-- **Face Recognition** - Identity verification
-- **TensorFlow** - Fraud detection models
-- **OpenAI API** - Document analysis
-
-### Security
-- **JWT** - Authentication
-- **AES-256** - Document encryption
-- **PKI Certificates** - Digital signatures
-- **Zero Trust** - Security architecture
-
-## 📋 Features
-
-### Authentication & Identity
-- OAuth 2.0 integration
-- Multi-factor authentication (MFA)
-- Email/SMS OTP verification
-- Biometric authentication
-- Aadhaar/Passport/PAN verification
-- Face match with liveness detection
-
-### Document Management
-- Drag-and-drop upload
-- Support for PDF, DOCX, images
-- Automatic OCR extraction
-- Metadata extraction
-- Version control
-- Document comparison
-- AES-256 encryption at rest
-
-### Digital Signature
-- PKI certificate management
-- eSign integration
-- RFC 3161 timestamp
-- Signature validation
-- Certificate revocation checking
-- QR code verification
-
-### Notary Workflow
-- Request notarization
-- Live video verification
-- Digital seal application
-- Certificate generation
-- Immutable audit trail
-- Blockchain hash storage
-
-### Fraud Detection
-- Fake ID detection
-- PDF modification detection
-- Image manipulation detection
-- Duplicate document detection
-- Signature mismatch detection
-- Deepfake detection
-- Risk scoring engine
-
-### Notifications
-- Email notifications
-- SMS alerts
-- WhatsApp integration
-- Push notifications
-- Real-time status updates
-
-### Dashboards
-- Company dashboard
-- Bank verification portal
-- Notary workspace
-- Admin control panel
-- Fraud monitoring
-- Analytics & reporting
-
-## 🔐 Security Features
-
-- **Encryption**: AES-256 for data at rest, TLS 1.3 in transit
-- **Authentication**: JWT with refresh tokens, MFA
-- **Authorization**: Role-based access control (RBAC)
-- **Device Fingerprinting**: Track access patterns
-- **IP & Geo Tracking**: Anomaly detection
-- **Tamper Detection**: Document integrity verification
-- **Watermarking**: Visual and digital watermarks
-- **Audit Logs**: Immutable blockchain-backed logs
-
-## 📊 Compliance
-
-- GDPR compliant
-- SOC2 Type II
-- ISO 27001
-- Electronic Signature Laws (eIDAS, ESIGN)
-- AML/KYC integration
-- Data retention policies
-- Audit reporting
-
-## 🚦 Quick Start
-
-### Prerequisites
-- Docker & Docker Compose
-- Node.js 18+
-- Python 3.11+
-- PostgreSQL 15+
-- Redis 7+
-
-### Local Development
-
-1. **Clone and setup**
-```bash
-git clone <repository-url>
-cd digital-notary-platform
+backend/
+  app/
+    core/
+      firebase.py             # Firebase Admin SDK initialization & token verification
+    middleware/
+      auth.py                 # FastAPI Bearer HTTPBearer token verification & RBAC guard
+    api/
+      v1/
+        auth.py               # User sync, /auth/me, and /auth/logout-everywhere
 ```
 
-2. **Start services**
-```bash
-docker-compose up -d
+---
+
+## Setup & Configuration
+
+### 1. Firebase Console Setup
+
+1. Go to [Firebase Console](https://console.firebase.google.com/) and create/select your project.
+2. **Enable Authentication Methods**:
+   - Go to **Authentication > Sign-in method**.
+   - Enable **Email/Password**.
+   - Enable **Google** (Configure OAuth consent screen).
+   - Enable **Microsoft** (Set Client ID & Secret from Azure Portal).
+   - Enable **Phone** (Add test phone numbers for local development if needed).
+3. **Enable Multi-Factor Authentication (MFA)**:
+   - Go to **Authentication > Settings > Multi-factor authentication**.
+   - Enable **SMS Multi-Factor Authentication**.
+4. **Service Account Credentials (Backend)**:
+   - Go to **Project Settings > Service accounts**.
+   - Click **Generate new private key** to download the JSON.
+
+---
+
+### 2. Environment Variables Configuration
+
+#### Frontend (`frontend/.env.local`)
+```env
+NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=your_measurement_id
+
+NEXT_PUBLIC_API_URL=http://localhost:8000/api/v1
+NEXT_PUBLIC_APP_NAME=NotaryChain
 ```
 
-3. **Backend setup**
+#### Backend (`.env`)
+```env
+FIREBASE_PROJECT_ID=your_project_id
+FIREBASE_CLIENT_EMAIL=firebase-adminsdk-xxxxx@your_project_id.iam.gserviceaccount.com
+FIREBASE_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+---
+
+## Authentication Workflows
+
+### Login & MFA Flow
+1. User enters Email/Password or clicks Google/Microsoft login.
+2. Firebase verifies primary credential.
+3. If user has MFA enabled, Firebase throws `auth/multi-factor-auth-required` with a `resolver`.
+4. The `LoginForm` catches the error, renders the 2FA OTP prompt, and sends SMS code to registered phone.
+5. User inputs 6-digit OTP to complete authentication.
+
+### Route Protection
+- **Guest Routes**: `/login`, `/register`, `/forgot-password` (Redirect authenticated users to `/dashboard`).
+- **Authenticated Routes**: `/dashboard`, `/profile`, `/settings`, `/mfa-setup`, `/phone-verification` (Redirect unauthenticated users to `/login`).
+- **Admin Routes**: `/admin` (Protected by `require_role('admin', 'super_admin')`).
+
+### Backend Token Verification
+All protected FastAPI routes verify the client's Firebase ID Token sent via HTTP Authorization header:
+```text
+Authorization: Bearer <Firebase_ID_Token>
+```
+Backend verifies tokens using `firebase_admin.auth.verify_id_token(id_token, check_revoked=True)`.
+
+---
+
+## Local Development Setup
+
+### 1. Install Backend Dependencies & Start Server
 ```bash
 cd backend
 python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Windows: venv\Scripts\activate | Linux/macOS: source venv/bin/activate
 pip install -r requirements.txt
-alembic upgrade head
 uvicorn app.main:app --reload
 ```
 
-4. **Frontend setup**
+### 2. Install Frontend Dependencies & Start Next.js
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
 
-5. **Access the application**
-- Frontend: http://localhost:3000
-- Backend API: http://localhost:8000
-- API Docs: http://localhost:8000/docs
-
-## 🔄 Loan Processing Flow
-
-```
-Company Registration
-    ↓
-eKYC Verification
-    ↓
-Document Upload
-    ↓
-OCR & AI Validation
-    ↓
-Identity Verification (Face + Liveness)
-    ↓
-Fraud Detection
-    ↓
-Submit to Notary
-    ↓
-Notary Review & Verification
-    ↓
-Digital Signature & Seal
-    ↓
-QR Code Generation
-    ↓
-Immutable Audit Record
-    ↓
-Send to Bank
-    ↓
-Bank Verification
-    ↓
-Loan Approval
-    ↓
-Permanent Storage
-```
-
-## 📦 Deployment
-
-### Docker
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
-
-### Kubernetes
-```bash
-kubectl apply -f k8s/
-```
-
-### Environment Variables
-See `.env.example` for required configuration.
-
-## 🧪 Testing
-
-```bash
-# Backend tests
-cd backend
-pytest
-
-# Frontend tests
-cd frontend
-npm test
-
-# E2E tests
-npm run test:e2e
-```
-
-## 📖 API Documentation
-
-Interactive API documentation available at `/docs` when running the backend server.
-
-## 🤝 Contributing
-
-This is an enterprise platform. Contribution guidelines and code review process documentation will be provided separately.
-
-## 📄 License
-
-Proprietary - All rights reserved
-
-## 🆘 Support
-
-For technical support and documentation, contact the development team.
-
----
-
-**Built with security, compliance, and scalability in mind.**
+Visit `http://localhost:3000` to access the application.
