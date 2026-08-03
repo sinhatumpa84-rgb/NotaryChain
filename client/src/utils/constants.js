@@ -27,19 +27,21 @@ export const ROLE_COLORS = {
 
 export const SIDEBAR_MENUS = {
   [ROLES.ADMIN]: [
-    { label: 'Dashboard', path: '/dashboard', icon: 'FiHome' },
-    { label: 'Polygon Neobank', path: '/neobank', icon: 'FiCreditCard' },
-    { label: 'Users', path: '/admin/users', icon: 'FiUsers' },
-    { label: 'Audit Logs', path: '/admin/audit', icon: 'FiActivity' },
-    { label: 'Analytics', path: '/admin/analytics', icon: 'FiPieChart' }
+    { label: 'Dashboard',        path: '/dashboard',         icon: 'FiHome'       },
+    { label: 'Polygon Neobank',  path: '/neobank',           icon: 'FiCreditCard'  },
+    { label: 'Users',            path: '/admin/users',       icon: 'FiUsers'       },
+    { label: 'Audit Logs',       path: '/admin/audit',       icon: 'FiActivity'    },
+    { label: 'Analytics',        path: '/admin/analytics',   icon: 'FiPieChart'    },
+    { label: 'Blockchain Status',path: '/blockchain-health', icon: 'FiHexagon'     }
   ],
   DEFAULT: [
-    { label: 'Dashboard', path: '/dashboard', icon: 'FiHome' },
-    { label: 'Polygon Neobank', path: '/neobank', icon: 'FiCreditCard' },
-    { label: 'Documents', path: '/documents', icon: 'FiFileText' },
-    { label: 'Verifications', path: '/verifications', icon: 'FiCheckCircle' },
-    { label: 'Profile', path: '/profile', icon: 'FiUser' },
-    { label: 'Settings', path: '/settings', icon: 'FiSettings' }
+    { label: 'Dashboard',        path: '/dashboard',         icon: 'FiHome'        },
+    { label: 'Polygon Neobank',  path: '/neobank',           icon: 'FiCreditCard'  },
+    { label: 'Documents',        path: '/documents',         icon: 'FiFileText'    },
+    { label: 'Verifications',    path: '/verifications',     icon: 'FiCheckCircle' },
+    { label: 'Blockchain Status',path: '/blockchain-health', icon: 'FiHexagon'     },
+    { label: 'Profile',          path: '/profile',           icon: 'FiUser'        },
+    { label: 'Settings',         path: '/settings',          icon: 'FiSettings'    }
   ]
 };
 

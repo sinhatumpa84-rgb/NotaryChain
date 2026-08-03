@@ -1,0 +1,50 @@
+{
+  "abi": [
+    {
+      "inputs": [
+        { "internalType": "bytes32", "name": "_hash", "type": "bytes32" },
+        { "internalType": "string",  "name": "_docId", "type": "string"  }
+      ],
+      "name": "storeHash",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "bytes32", "name": "_hash", "type": "bytes32" }
+      ],
+      "name": "getHashRecord",
+      "outputs": [
+        { "internalType": "address",  "name": "notary",    "type": "address"  },
+        { "internalType": "string",   "name": "docId",     "type": "string"   },
+        { "internalType": "uint256",  "name": "timestamp", "type": "uint256"  },
+        { "internalType": "bool",     "name": "exists",    "type": "bool"     }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [
+        { "internalType": "bytes32", "name": "_hash", "type": "bytes32" }
+      ],
+      "name": "hashExists",
+      "outputs": [
+        { "internalType": "bool", "name": "", "type": "bool" }
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "anonymous": false,
+      "inputs": [
+        { "indexed": true,  "internalType": "address", "name": "notary",    "type": "address"  },
+        { "indexed": true,  "internalType": "bytes32", "name": "hash",      "type": "bytes32"  },
+        { "indexed": false, "internalType": "string",  "name": "docId",     "type": "string"   },
+        { "indexed": false, "internalType": "uint256", "name": "timestamp", "type": "uint256"  }
+      ],
+      "name": "HashStored",
+      "type": "event"
+    }
+  ]
+}

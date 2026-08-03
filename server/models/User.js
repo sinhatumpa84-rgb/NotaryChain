@@ -4,7 +4,9 @@ const crypto = require('crypto');
 
 const userSchema = new mongoose.Schema({
   email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-  password: { type: String, required: true },
+  password: { type: String, required: false },
+  googleId: { type: String, sparse: true, index: true },
+  authProvider: { type: String, enum: ['local', 'google'], default: 'local' },
   firstName: { type: String, required: true },
   lastName: { type: String, required: true },
   phone: String,
@@ -20,7 +22,11 @@ const userSchema = new mongoose.Schema({
   mfaEnabled: { type: Boolean, default: false },
   mfaSecret: String,
   lastLogin: Date,
-  loginCount: { type: Number, default: 0 }
+  loginCount: { type: Number, default: 0 },
+  faceVerified: { type: Boolean, default: false },
+  verificationDate: Date,
+  lastVerification: Date,
+  faceEmbedding: [Number]
 }, { timestamps: true, toJSON: { virtuals: true }, toObject: { virtuals: true } });
 
 userSchema.virtual('fullName').get(function() {
@@ -32,7 +38,8 @@ userSchema.virtual('profileCompleted').get(function() {
 });
 
 userSchema.pre('save', async function(next) {
-  if (!this.isModified('password')) return next();
+  // Only hash password for local accounts that actually have a password
+  if (!this.isModified('password') || !this.password) return next();
   this.password = await bcrypt.hash(this.password, 12);
   next();
 });

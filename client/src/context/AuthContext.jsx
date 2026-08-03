@@ -1,5 +1,8 @@
 import { createContext, useState, useEffect, useCallback } from 'react';
 import axiosInstance from '../api/axios';
+import { auth, googleProvider, IS_CONFIGURED } from '../config/firebase';
+import { signInWithPopup } from 'firebase/auth';
+
 
 export const AuthContext = createContext();
 
@@ -144,11 +147,37 @@ export const AuthProvider = ({ children }) => {
     }
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    // Guard: Firebase not configured yet
+    if (!IS_CONFIGURED || !auth || !googleProvider) {
+      throw new Error(
+        'Google Sign-In is not configured yet. Add your VITE_FIREBASE_API_KEY to .env and restart the dev server.'
+      );
+    }
+
+    // Open the Google popup via Firebase
+    const result = await signInWithPopup(auth, googleProvider);
+    const idToken = await result.user.getIdToken();
+
+    // Call /auth/google/init to verify profile & get temp token for identity verification
+    const res = await axiosInstance.post('/auth/google/init', { idToken });
+    const payload = extract(res);
+
+    // Save temporary session in sessionStorage (resets if page is closed without completing)
+    sessionStorage.setItem('pending_google_auth', JSON.stringify({
+      tempToken: payload.tempToken,
+      user: payload.user
+    }));
+
+    return payload;
+  }, []);
+
   const updateUser = useCallback((data) => setUser((prev) => ({ ...prev, ...data })), []);
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, signup, logout, refreshToken, updateUser }}>
+    <AuthContext.Provider value={{ user, isLoading, isAuthenticated, login, signup, logout, refreshToken, updateUser, loginWithGoogle }}>
       {children}
     </AuthContext.Provider>
   );
 };
+

@@ -30,6 +30,8 @@ import AdminAudit from './pages/AdminAudit';
 import AdminAnalytics from './pages/AdminAnalytics';
 import Neobank from './pages/Neobank';
 import NotFound from './pages/NotFound';
+import BlockchainHealth from './pages/BlockchainHealth';
+import IdentityVerification from './pages/IdentityVerification';
 
 /**
  * ProtectedRoute — Redirects to /login if user is not authenticated.
@@ -86,6 +88,9 @@ function App() {
               <Route path="/verify-email/:token" element={<VerifyEmail />} />
             </Route>
 
+            {/* Identity Verification Page (Full Width Standalone) */}
+            <Route path="/verify-identity" element={<IdentityVerification />} />
+
             {/* Dashboard Routes */}
             <Route element={<DashboardLayout />}>
               <Route path="/dashboard" element={<Dashboard />} />
@@ -95,6 +100,7 @@ function App() {
               <Route path="/settings" element={<Settings />} />
               <Route path="/notifications" element={<Notifications />} />
               <Route path="/verifications" element={<Verifications />} />
+              <Route path="/blockchain-health" element={<BlockchainHealth />} />
 
               {/* Admin-only routes */}
               <Route path="/admin/users" element={<RoleRoute allowedRoles={['admin']}><AdminUsers /></RoleRoute>} />

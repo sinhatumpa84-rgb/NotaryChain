@@ -8,6 +8,9 @@ const { extractDeviceInfo } = require('../middleware/deviceInfo');
 
 router.post('/signup', extractDeviceInfo, c.signup);
 router.post('/login', authLimiter, extractDeviceInfo, c.login);
+router.post('/google', extractDeviceInfo, c.googleAuth);
+router.post('/google/init', extractDeviceInfo, c.googleAuthInit);
+router.post('/google/verify-identity', extractDeviceInfo, c.googleVerifyIdentity);
 router.post('/verify-email/:token', c.verifyEmail);
 router.post('/forgot-password', authLimiter, v(s.forgotPasswordSchema), c.forgotPassword);
 router.post('/reset-password/:token', v(s.resetPasswordSchema), c.resetPassword);

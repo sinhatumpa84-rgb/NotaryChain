@@ -2,20 +2,24 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { HiOutlineHome, HiOutlineDocumentText, HiOutlineBadgeCheck, HiOutlineUser, HiOutlineCog, HiOutlineUsers, HiOutlineChartPie, HiOutlineClipboardList, HiOutlineCreditCard } from 'react-icons/hi';
+import { HiOutlineCpuChip } from 'react-icons/hi2';
+
 import { useAuth } from '../../hooks/useAuth';
 import { SIDEBAR_MENUS, ROLES } from '../../utils/constants';
 
 const iconMap = {
-  FiHome: HiOutlineHome,
+  FiHome:       HiOutlineHome,
   FiCreditCard: HiOutlineCreditCard,
-  FiFileText: HiOutlineDocumentText,
-  FiCheckCircle: HiOutlineBadgeCheck,
-  FiUser: HiOutlineUser,
-  FiSettings: HiOutlineCog,
-  FiUsers: HiOutlineUsers,
-  FiPieChart: HiOutlineChartPie,
-  FiActivity: HiOutlineClipboardList,
+  FiFileText:   HiOutlineDocumentText,
+  FiCheckCircle:HiOutlineBadgeCheck,
+  FiUser:       HiOutlineUser,
+  FiSettings:   HiOutlineCog,
+  FiUsers:      HiOutlineUsers,
+  FiPieChart:   HiOutlineChartPie,
+  FiActivity:   HiOutlineClipboardList,
+  FiHexagon:    HiOutlineCpuChip,
 };
+
 
 const Sidebar = ({ collapsed, onToggle }) => {
   const { user } = useAuth();
